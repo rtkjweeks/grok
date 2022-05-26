@@ -106,6 +106,7 @@ impl Pattern {
                         Some(item) => item.0.clone(),
                         None => String::from(cap_name),
                     };
+                    println!("JJW {} -> {}", name, cap_idex[0])
                     names.insert(name, cap_idx[0]);
                     true
                 });
@@ -153,6 +154,7 @@ impl Grok {
 
     /// Compiles the given pattern, making it ready for matching.
     pub fn compile(&mut self, pattern: &str, with_alias_only: bool) -> Result<Pattern, Error> {
+        let orig_regex = String::from(pattern).clone();
         let mut named_regex = String::from(pattern);
         let mut alias: HashMap<String, String> = HashMap::new();
 
@@ -243,6 +245,7 @@ impl Grok {
         if named_regex.is_empty() {
             Err(Error::CompiledPatternIsEmpty(pattern.into()))
         } else {
+            println!("JJW\n{}\n{}\n{:#?}", orig_regex, named_regex, alias);
             Pattern::new(&named_regex, &alias)
         }
     }
