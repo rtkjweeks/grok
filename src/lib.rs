@@ -106,7 +106,7 @@ impl Pattern {
                         Some(item) => item.0.clone(),
                         None => String::from(cap_name),
                     };
-                    println!("JJW {} -> {}", name, cap_idex[0])
+                    println!("JJW {} -> {}", name, cap_idex[0]);
                     names.insert(name, cap_idx[0]);
                     true
                 });
