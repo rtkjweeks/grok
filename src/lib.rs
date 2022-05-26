@@ -37,7 +37,22 @@ pub struct Matches<'a> {
 
 impl<'a> Matches<'a> {
     /// Instantiates the matches for a pattern after the match.
-    pub fn new(captures: Captures<'a>, names: &'a HashMap<String, u32>) -> Self {
+    pub fn new(captures: Captures<'a>, names: &'a HashMap<String, u32>, index_to_alias: &'a HashMap<u32, String>) -> Self {
+        // iteration from 0..len, if !None, then setup a string->i mapping
+        println!("Created Matches:");
+        let unknown : String = "?".to_string();
+
+        for i in 0..captures.len() {
+            if let Some(value) = captures.at(i) {
+                let key = index_to_alias.get(&(i as u32)).unwrap_or(&unknown);
+                println!("  Matches::new (by index) {} -> {}: {}", i, key, value);
+            }
+        }
+
+        for (i, name) in captures.iter().enumerate() {
+            println!("  Matches::new (by name) {} {}", i, name.unwrap_or("?"));
+        }
+
         Matches { captures, names }
     }
 
@@ -48,6 +63,11 @@ impl<'a> Matches<'a> {
             None => None,
         }
     }
+
+    // we need compile map of our provided alias to a "name<i>" variant... or just the name?
+    //pub fn jjw_get(&self, name: &str) -> Option<&str> {
+        // get index
+    //}
 
     /// Returns the number of matches.
     pub fn len(&self) -> usize {
@@ -92,12 +112,19 @@ impl<'a> Iterator for MatchesIter<'a> {
 pub struct Pattern {
     regex: Regex,
     names: HashMap<String, u32>,
+    reverse_alias: HashMap<String, String>,
+    index_to_alias: HashMap<u32, String>,
 }
 
 impl Pattern {
     /// Creates a new pattern from a raw regex string and an alias map to identify the
     /// fields properly.
-    pub fn new(regex: &str, alias: &HashMap<String, String>) -> Result<Self, Error> {
+    pub fn new(regex: &str,
+               alias: &HashMap<String, String>,
+               reverse_alias: HashMap<String, String>,
+               // JJW: TODO: remove this...
+               index_to_alias: HashMap<u32, String>) -> Result<Self, Error> {
+        let mut real_index_to_alias: HashMap<u32, String> = HashMap::new();
         match Regex::new(regex) {
             Ok(r) => Ok({
                 let mut names = HashMap::new();
@@ -106,11 +133,13 @@ impl Pattern {
                         Some(item) => item.0.clone(),
                         None => String::from(cap_name),
                     };
-                    println!("JJW {} -> {}", name, cap_idex[0]);
+                    println!("JJW Pattern::new() {} -> {}", name, cap_idx[0]);
+                    println!("    Pattern::new() {} -> {} -> {}", cap_idx[0], cap_name, reverse_alias.get(cap_name).unwrap());
                     names.insert(name, cap_idx[0]);
+                    real_index_to_alias.insert(cap_idx[0], (*reverse_alias.get(cap_name).unwrap()).clone());
                     true
                 });
-                Pattern { regex: r, names }
+                Pattern { regex: r, names, reverse_alias, index_to_alias: real_index_to_alias }
             }),
             Err(_) => Err(Error::RegexCompilationFailed(regex.into())),
         }
@@ -120,7 +149,7 @@ impl Pattern {
     pub fn match_against<'a>(&'a self, text: &'a str) -> Option<Matches<'a>> {
         self.regex
             .captures(text)
-            .map(|cap| Matches::new(cap, &self.names))
+            .map(|cap| Matches::new(cap, &self.names, &self.index_to_alias))
     }
 }
 
@@ -157,6 +186,10 @@ impl Grok {
         let orig_regex = String::from(pattern).clone();
         let mut named_regex = String::from(pattern);
         let mut alias: HashMap<String, String> = HashMap::new();
+
+        // JJW
+        let mut reverse_alias: HashMap<String, String> = HashMap::new();
+        let mut index_to_alias: HashMap<u32, String> = HashMap::new();
 
         let mut index = 0;
         let mut iteration_left = MAX_RECURSION;
@@ -229,6 +262,22 @@ impl Grok {
                             format!("name{}", index),
                         );
 
+                        reverse_alias.insert(
+                            format!("name{}", index),
+                            match m.at(ALIAS_INDEX) {
+                                Some(a) => a.into(),
+                                None => name.clone(),
+                            },
+                        );
+
+                        index_to_alias.insert(
+                            index as u32,
+                            match m.at(ALIAS_INDEX) {
+                                Some(a) => a.into(),
+                                None => name.clone(),
+                            },
+                        );
+
                         format!("(?<name{}>{})", index, pattern_definition)
                     };
 
@@ -246,7 +295,9 @@ impl Grok {
             Err(Error::CompiledPatternIsEmpty(pattern.into()))
         } else {
             println!("JJW\n{}\n{}\n{:#?}", orig_regex, named_regex, alias);
-            Pattern::new(&named_regex, &alias)
+            println!("JJW - reverse alias\n{:#?}", reverse_alias);
+            println!("JJW - index to alias\n{:#?}", index_to_alias);
+            Pattern::new(&named_regex, &alias, reverse_alias, index_to_alias)
         }
     }
 }
