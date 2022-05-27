@@ -151,7 +151,8 @@ impl Pattern {
                     println!("JJW Pattern::new() {} -> {}", name, cap_idx[0]);
                     println!("    Pattern::new() {} -> {} -> {}", cap_idx[0], cap_name, reverse_alias.get(cap_name).unwrap());
                     names.insert(name, cap_idx[0]);
-                    real_index_to_alias.insert(cap_idx[0], (*reverse_alias.get(cap_name).unwrap()).clone());
+                    //real_index_to_alias.insert(cap_idx[0], (*reverse_alias.get(cap_name).unwrap()).clone());
+                    real_index_to_alias.insert(cap_idx[0], (*reverse_alias.get(cap_name).unwrap_or(&cap_name.to_string())).clone());
                     true
                 });
                 Pattern { regex: r, names, reverse_alias, index_to_alias: real_index_to_alias }
