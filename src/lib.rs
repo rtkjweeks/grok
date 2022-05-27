@@ -149,7 +149,7 @@ impl Pattern {
                         None => String::from(cap_name),
                     };
                     println!("JJW Pattern::new() {} -> {}", name, cap_idx[0]);
-                    println!("    Pattern::new() {} -> {} -> {}", cap_idx[0], cap_name, reverse_alias.get(cap_name).unwrap());
+                    println!("    Pattern::new() {} -> {} -> {}", cap_idx[0], cap_name, reverse_alias.get(cap_name).unwrap_or(&cap_name.to_string()));
                     names.insert(name, cap_idx[0]);
                     //real_index_to_alias.insert(cap_idx[0], (*reverse_alias.get(cap_name).unwrap()).clone());
                     real_index_to_alias.insert(cap_idx[0], (*reverse_alias.get(cap_name).unwrap_or(&cap_name.to_string())).clone());
