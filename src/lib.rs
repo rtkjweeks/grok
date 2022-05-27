@@ -33,6 +33,7 @@ pub fn patterns<'a>() -> &'a [(&'a str, &'a str)] {
 pub struct Matches<'a> {
     captures: Captures<'a>,
     names: &'a HashMap<String, u32>,
+    alias_to_index: HashMap<String, u32>,
 }
 
 impl<'a> Matches<'a> {
@@ -41,11 +42,13 @@ impl<'a> Matches<'a> {
         // iteration from 0..len, if !None, then setup a string->i mapping
         println!("Created Matches:");
         let unknown : String = "?".to_string();
+        let mut alias_to_index : HashMap<String, u32> = HashMap::new();
 
         for i in 0..captures.len() {
             if let Some(value) = captures.at(i) {
                 let key = index_to_alias.get(&(i as u32)).unwrap_or(&unknown);
                 println!("  Matches::new (by index) {} -> {}: {}", i, key, value);
+                alias_to_index.insert((&key).to_string(), i as u32);
             }
         }
 
@@ -53,7 +56,10 @@ impl<'a> Matches<'a> {
             println!("  Matches::new (by name) {} {}", i, name.unwrap_or("?"));
         }
 
-        Matches { captures, names }
+        println!("names to index {:#?}", names);
+        println!("alias to index {:#?}", alias_to_index);
+
+        Matches { captures, names, alias_to_index }
     }
 
     /// Gets the value for the name (or) alias if found, `None` otherwise.
@@ -65,9 +71,12 @@ impl<'a> Matches<'a> {
     }
 
     // we need compile map of our provided alias to a "name<i>" variant... or just the name?
-    //pub fn jjw_get(&self, name: &str) -> Option<&str> {
-        // get index
-    //}
+    pub fn jjw_get(&self, name: &str) -> Option<&str> {
+        match self.alias_to_index.get(name) {
+            Some(found) => self.captures.at(*found as usize),
+            None => None,
+        }
+    }
 
     /// Returns the number of matches.
     pub fn len(&self) -> usize {
