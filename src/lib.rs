@@ -32,13 +32,13 @@ pub fn patterns<'a>() -> &'a [(&'a str, &'a str)] {
 #[derive(Debug)]
 pub struct Matches<'a> {
     captures: Captures<'a>,
-    names: &'a HashMap<String, u32>,
+    //names: &'a HashMap<String, u32>,
     alias_to_index: HashMap<String, u32>,
 }
 
 impl<'a> Matches<'a> {
     /// Instantiates the matches for a pattern after the match.
-    pub fn new(captures: Captures<'a>, names: &'a HashMap<String, u32>, index_to_alias: &'a HashMap<u32, String>) -> Self {
+    pub fn new(captures: Captures<'a> /*, names: &'a HashMap<String, u32>*/, index_to_alias: &'a HashMap<u32, String>) -> Self {
         // iteration from 0..len, if !None, then setup a string->i mapping
         println!("Created Matches:");
         let unknown : String = "?".to_string();
@@ -56,12 +56,14 @@ impl<'a> Matches<'a> {
             println!("  Matches::new (by name) {} {}", i, name.unwrap_or("?"));
         }
 
-        println!("names to index {:#?}", names);
+        //println!("names to index {:#?}", names);
         println!("alias to index {:#?}", alias_to_index);
 
-        Matches { captures, names, alias_to_index }
+        Matches { captures, /*names,*/ alias_to_index }
     }
 
+
+    /*
     /// Gets the value for the name (or) alias if found, `None` otherwise.
     pub fn get(&self, name_or_alias: &str) -> Option<&str> {
         match self.names.get(name_or_alias) {
@@ -69,9 +71,12 @@ impl<'a> Matches<'a> {
             None => None,
         }
     }
+    */
 
     // we need compile map of our provided alias to a "name<i>" variant... or just the name?
-    pub fn jjw_get(&self, name: &str) -> Option<&str> {
+    // TODO: also support name, if alias doens't exist?
+    /// Gets the value for the alias if found, `None` otherwise.
+    pub fn get(&self, name: &str) -> Option<&str> {
         match self.alias_to_index.get(name) {
             Some(found) => self.captures.at(*found as usize),
             None => None,
@@ -94,7 +99,7 @@ impl<'a> Matches<'a> {
     pub fn iter(&'a self) -> MatchesIter<'a> {
         MatchesIter {
             captures: &self.captures,
-            names: self.names.iter(),
+            names: self.alias_to_index.iter(),
         }
     }
 }
@@ -119,6 +124,7 @@ impl<'a> Iterator for MatchesIter<'a> {
 /// The `Pattern` represents a compiled regex, ready to be matched against arbitrary text.
 #[derive(Debug)]
 pub struct Pattern {
+    // TODO: which of these are actually used?
     regex: Regex,
     names: HashMap<String, u32>,
     reverse_alias: HashMap<String, String>,
@@ -158,7 +164,7 @@ impl Pattern {
     pub fn match_against<'a>(&'a self, text: &'a str) -> Option<Matches<'a>> {
         self.regex
             .captures(text)
-            .map(|cap| Matches::new(cap, &self.names, &self.index_to_alias))
+            .map(|cap| Matches::new(cap, &self.index_to_alias))
     }
 }
 
